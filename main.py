@@ -1,13 +1,16 @@
-from flask import Flask,redirect,url_for,render_template,request
+from email import message
+from flask import Flask,redirect,url_for,render_template,request,session
 from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session
 from datetime import datetime
 import os 
 import secrets
 app=Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@127.0.0.1/project'
 db = SQLAlchemy(app)
+app.secret_key = "this is my secrete key"
 ########################################MODEL#########################################
-class User__his(db.Model):
+class User(db.Model):
 
     id = db.Column(db.Integer,
                    primary_key=True)
@@ -17,22 +20,39 @@ class User__his(db.Model):
     email = db.Column(db.String(40),
                       unique=True,
                       nullable=False)
-    password = db.Column(db.String(200),
-                         primary_key=False,
-                         unique=False,
-                         nullable=False)
+    password = db.Column(
+                      db.String(255),
+                      unique=False,
+                      nullable=False
+    )
+    PhotOrVidRel = db.relationship("PhotOrVid",backref = 'photvids')
 
-    date = db.Column(db.DateTime,default = datetime.utcnow)
 
-    topic = db.Column(db.String(255),
+
+class PhotOrVid(db.Model):
+
+    id = db.Column(db.Integer,
+                   primary_key=True)
+    title = db.Column(
+                      db.String(255),
                       unique=False,
-                      nullable=True)
-    message = db.Column(db.String(1000000),
+                      nullable=False
+    )
+    message = db.Column(
+                      db.String(40),
                       unique=False,
-                      nullable=True)
-    filename = db.Column(db.String(255),
+                      nullable=False
+    )
+    filename = db.Column(
+                      db.String(255),
                       unique=False,
-                      nullable=True)
+                      nullable=True
+    )
+    user_id  = db.Column(
+        db.Integer,
+        db.ForeignKey('user.id')
+    )
+    
 
 
     
@@ -40,13 +60,22 @@ def upload_saver(input_file):
     filename = secrets.token_urlsafe(10) + input_file.filename
     path = os.path.join(r"flaskPro\static\img" , filename)
     input_file.save(path)
+    return filename
 ##################################ROUTE#####################################
 @app.route('/',methods=['GET','POST'])
 def index():
-  if request.method=='POST':
-    # Handle POST Request here
+  
+    session['email'] = request.form.get('email',None)
+    if request.method == 'POST':
+        username = request.form.get('username',None)
+        email = request.form.get('email',None)
+        password = request.form.get('password',None)
+        session['email'] = request.form.get('email',None)
+
+        new_user = User(username = username,email =email,password =password)
+        db.session.add(new_user)
+        db.session.commit()
     return render_template('index.html')
-  return render_template('index.html')
 
 @app.route('/videos', methods=['GET', 'POST'])
 def videos():
@@ -58,9 +87,21 @@ def about():
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     return render_template('contact.html')
+
+
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
+    if not session.get('email'):
+        return redirect('/signup')
+    title = request.form.get('title')
+    message = request.form.get('message')
+    PhotOrVid =request.form.get('photOrVid')
     return render_template('upload.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    return render_template('signup.html')
+
 db.create_all()
 if __name__ == '__main__':
   #DEBUG is SET to TRUE. CHANGE FOR PROD
