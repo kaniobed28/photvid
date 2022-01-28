@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block body %}
-<form action="" method="post">
+<form action="/upload" method="post" enctype="multipart/form-data">
 <div class="mb-3">
     <label for="exampleFormControlInput1" class="form-label">Title</label>
     <input type="text" name = "title" class="form-control" id="" placeholder="type your title here">
@@ -12,7 +12,8 @@
   </div>
   <div class="mb-3">
     <label for="exampleFormControlTextarea1" class="form-label">Message</label>
-    <input class="form-control" name="photOrVid"  placeholder="select your file" id="" type="file"  rows="5">
+    <input class="form-control" name="photOrVid"  placeholder="select your file" id="" type="file" >
   </div>
+  <button type="submit">upload me</button>
 </form>
 {% endblock %}

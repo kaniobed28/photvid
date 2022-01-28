@@ -1,4 +1,5 @@
 from email import message
+from fileinput import filename
 from flask import Flask,redirect,url_for,render_template,request,session
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
@@ -36,12 +37,12 @@ class PhotOrVid(db.Model):
     title = db.Column(
                       db.String(255),
                       unique=False,
-                      nullable=False
+                      nullable=True
     )
     message = db.Column(
                       db.String(40),
                       unique=False,
-                      nullable=False
+                      nullable=True
     )
     filename = db.Column(
                       db.String(255),
@@ -65,16 +66,7 @@ def upload_saver(input_file):
 @app.route('/',methods=['GET','POST'])
 def index():
   
-    session['email'] = request.form.get('email',None)
-    if request.method == 'POST':
-        username = request.form.get('username',None)
-        email = request.form.get('email',None)
-        password = request.form.get('password',None)
-        session['email'] = request.form.get('email',None)
 
-        new_user = User(username = username,email =email,password =password)
-        db.session.add(new_user)
-        db.session.commit()
     return render_template('index.html')
 
 @app.route('/videos', methods=['GET', 'POST'])
@@ -93,13 +85,31 @@ def contact():
 def upload():
     if not session.get('email'):
         return redirect('/signup')
-    title = request.form.get('title')
-    message = request.form.get('message')
-    PhotOrVid =request.form.get('photOrVid')
+    if request.method == 'POST':
+        title = request.form.get('title')
+        message = request.form.get('message')
+        photOrVid =request.files['photOrVid']
+        queryEmail= session.get('email')
+        query_data = User.query.filter_by(email= queryEmail).first()
+        new_photvid = PhotOrVid(title = title,message = message,filename = upload_saver(photOrVid),photvids = query_data)
+        db.session.add(new_photvid)
+        db.session.commit()
+
     return render_template('upload.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    # session['email'] = request.form.get('email',None)
+    if request.method == 'POST':
+        username = request.form.get('username',None)
+        email = request.form.get('email',None)
+        password = request.form.get('password',None)
+        session['email'] = request.form.get('email',None)
+
+        new_user = User(username = username,email =email,password =password)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect('/')
     return render_template('signup.html')
 
 db.create_all()
