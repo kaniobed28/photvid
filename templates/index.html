@@ -22,12 +22,18 @@
                 </form>
             </div>
         </div>
+       
+
         <div class="row tm-mb-90 tm-gallery">
+            {% for imgdata in imgData %}
+            {% if not imgData.img_filename == None %}
+            
+            
         	<div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 col-12 mb-5">
                 <figure class="effect-ming tm-video-item">
-                    <img src="img/img-03.jpg" alt="Image" class="img-fluid">
+                    <img src="{{ url_for('static', filename='img/'+imgdata.img_filename) }}" alt="Image" class="img-fluid">
                     <figcaption class="d-flex align-items-center justify-content-center">
-                        <h2>Clocks</h2>
+                        <h2>{{imgdata.title}}</h2>
                         <a href="photo-detail.html">View more</a>
                     </figcaption>                    
                 </figure>
@@ -36,6 +42,8 @@
                     <span>9,906 views</span>
                 </div>
             </div>
+            {% endif %}
+            {% endfor %}
             {% endblock %}
 
             {% block prev_next %}

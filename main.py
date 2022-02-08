@@ -1,17 +1,28 @@
-from email import message
-from fileinput import filename
 from flask import Flask,redirect,url_for,render_template,request,session
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
+from flask_login import login_user,logout_user,current_user,UserMixin,LoginManager,login_required
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_bcrypt import Bcrypt
 from datetime import datetime
 import os 
 import secrets
+import glob
 app=Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@127.0.0.1/project'
 db = SQLAlchemy(app)
 app.secret_key = "this is my secrete key"
+
+bcrypt = Bcrypt(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+@login_manager.user_loader
+
+def user_loader(user_id):
+    #TODO change here
+    return User.query.get(user_id)
 ########################################MODEL#########################################
-class User(db.Model):
+class User(db.Model,UserMixin):
 
     id = db.Column(db.Integer,
                    primary_key=True)
@@ -26,11 +37,12 @@ class User(db.Model):
                       unique=False,
                       nullable=False
     )
-    PhotOrVidRel = db.relationship("PhotOrVid",backref = 'photvids')
+    PhotosRel = db.relationship("Photos",backref = 'photos_backref')
+    VideosRel = db.relationship("Videos",backref = 'videos_backref')
 
 
 
-class PhotOrVid(db.Model):
+class Photos(db.Model,UserMixin):
 
     id = db.Column(db.Integer,
                    primary_key=True)
@@ -44,11 +56,40 @@ class PhotOrVid(db.Model):
                       unique=False,
                       nullable=True
     )
-    filename = db.Column(
+    img_filename = db.Column(
                       db.String(255),
                       unique=False,
                       nullable=True
     )
+
+    
+
+    user_id  = db.Column(
+        db.Integer,
+        db.ForeignKey('user.id')
+    )
+class Videos(db.Model,UserMixin):
+
+    id = db.Column(db.Integer,
+                   primary_key=True)
+    title = db.Column(
+                      db.String(255),
+                      unique=False,
+                      nullable=True
+    )
+    message = db.Column(
+                      db.String(40),
+                      unique=False,
+                      nullable=True
+    )
+
+
+    vid_filename = db.Column(
+                      db.String(255),
+                      unique=False,
+                      nullable=True
+    )
+
     user_id  = db.Column(
         db.Integer,
         db.ForeignKey('user.id')
@@ -57,21 +98,27 @@ class PhotOrVid(db.Model):
 
 
     
-def upload_saver(input_file):
+def img_saver(input_file):
     filename = secrets.token_urlsafe(10) + input_file.filename
     path = os.path.join(r"flaskPro\static\img" , filename)
+    input_file.save(path)
+    return filename
+
+def vid_saver(input_file):
+    filename = secrets.token_urlsafe(10) + input_file.filename
+    path = os.path.join(r"flaskPro\static\video" , filename)
     input_file.save(path)
     return filename
 ##################################ROUTE#####################################
 @app.route('/',methods=['GET','POST'])
 def index():
-  
-
-    return render_template('index.html')
+    imgData = Photos.query.order_by(Photos.id).all()
+    return render_template('index.html',imgData = imgData)
 
 @app.route('/videos', methods=['GET', 'POST'])
 def videos():
-    return render_template('videos.html')
+    vidData = Videos.query.order_by(Videos.id).all()
+    return render_template('videos.html',vidData = vidData)
 
 @app.route('/about', methods=['GET', 'POST'])
 def about():
@@ -81,21 +128,46 @@ def contact():
     return render_template('contact.html')
 
 
-@app.route('/upload', methods=['GET', 'POST'])
-def upload():
-    if not session.get('email'):
+@app.route('/upload_image', methods=['GET', 'POST'])
+def upload_image():
+    # if not session.get('email'):
+    #     return redirect('/signup')
+    if not current_user.is_authenticated:
         return redirect('/signup')
     if request.method == 'POST':
         title = request.form.get('title')
         message = request.form.get('message')
         photOrVid =request.files['photOrVid']
-        queryEmail= session.get('email')
+        queryEmail= current_user.email #session.get('email')
         query_data = User.query.filter_by(email= queryEmail).first()
-        new_photvid = PhotOrVid(title = title,message = message,filename = upload_saver(photOrVid),photvids = query_data)
+        new_photvid = Photos(title = title,message = message,img_filename = img_saver(photOrVid),photos_backref = query_data)
         db.session.add(new_photvid)
         db.session.commit()
 
-    return render_template('upload.html')
+        return redirect("/")
+
+    return render_template('upload_image.html')
+
+@app.route('/upload_video', methods=['GET', 'POST'])
+def upload_video():
+    # if not session.get('email'):
+    #     return redirect('/signup')
+    if not current_user.is_authenticated:
+        return redirect('/signup')
+    if request.method == 'POST':
+        title = request.form.get('title')
+        message = request.form.get('message')
+        photOrVid =request.files['photOrVid']
+        queryEmail= current_user.email #session.get('email')
+        query_data = User.query.filter_by(email= queryEmail).first()
+        new_photvid = Videos(title = title,message = message,vid_filename = vid_saver(photOrVid),videos_backref = query_data)
+        db.session.add(new_photvid)
+        db.session.commit()
+
+        return redirect("/videos")
+
+    return render_template('upload_video.html')
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -104,11 +176,13 @@ def signup():
         username = request.form.get('username',None)
         email = request.form.get('email',None)
         password = request.form.get('password',None)
-        session['email'] = request.form.get('email',None)
+        # session['email'] = request.form.get('email',None)
 
         new_user = User(username = username,email =email,password =password)
         db.session.add(new_user)
         db.session.commit()
+        data = User.query.filter_by(email = email).first()
+        login_user(data,remember=True)
         return redirect('/')
     return render_template('signup.html')
 

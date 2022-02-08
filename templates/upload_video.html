@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block body %}
+<a href="{{url_for('upload_image')}}">Upload Image</a>
+<form action="/upload_video" method="post" enctype="multipart/form-data">
+<div class="mb-3">
+    <label for="exampleFormControlInput1" class="form-label">Title</label>
+    <input type="text" name = "title" class="form-control" id="" placeholder="type your title here">
+  </div>
+  <div class="mb-3">
+    <label for="exampleFormControlTextarea1" class="form-label">Message</label>
+    <textarea class="form-control" name="message" id="" placeholder="type your message here " rows="5"></textarea>
+  </div>
+  
+  <div class="mb-3">
+    <label for="exampleFormControlTextarea1" class="form-label">Message</label>
+    <input class="form-control" name="photOrVid"  placeholder="select your file" id="" type="file" accept="video/*" >
+  </div>
+  
+   
+  <button type="submit">upload me</button>
+</form>
+{% endblock %}
