@@ -123,9 +123,9 @@ def videos():
 @app.route('/about', methods=['GET', 'POST'])
 def about():
     return render_template('about.html')
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    return render_template('contact.html')
+# @app.route('/contact', methods=['GET', 'POST'])
+# def contact():
+#     return render_template('contact.html')
 
 
 @app.route('/upload_image', methods=['GET', 'POST'])
