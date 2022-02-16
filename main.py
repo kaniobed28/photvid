@@ -9,7 +9,7 @@ import os
 import secrets
 import glob
 app=Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@127.0.0.1/project'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project.db'
 db = SQLAlchemy(app)
 app.secret_key = "this is my secrete key"
 
